@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"github.com/jackc/pgx/v5/stdlib"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
