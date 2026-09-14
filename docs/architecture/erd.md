@@ -1,19 +1,21 @@
-# Entity Relationship Diagram
+# ERD
 
-## Tables
+## `greetings`
 
-### `greetings`
+Singleton current public greeting.
 
 | Column | PostgreSQL type | Constraints | Purpose |
 |---|---|---|---|
-| `id` | `smallint` | primary key; must equal `1` | Enforces single current greeting row. |
-| `text` | `text` | not null; trimmed non-empty enforced by API | Current public greeting. |
-| `updated_at` | `timestamptz` | not null; default `now()` | Last successful save time. |
+| `id` | `boolean` | primary key, `CHECK (id)` | Enforces one row keyed as `TRUE` |
+| `text` | `text` | `NOT NULL`, `CHECK (btrim(text) <> '')` | Current trimmed greeting |
+| `updated_at` | `timestamptz` | `NOT NULL`, default `now()` | Last successful write time |
 
-Seed migration inserts `(1, 'Hello, World!')`. Reads address `id = 1`; updates target same row. No foreign keys or relationships: scope has one independent persisted record.
+Initial migration inserts `(TRUE, 'Hello, World!')` with conflict ignored. No relationships: product owns one current greeting and no users, history, or child records.
 
-## Migration rules
+## Migration tracking
 
-- Migration pair format: `YYYYMMDDHHMMSS_name.up.sql` and matching `.down.sql`.
-- API applies `.up.sql` files in lexical order and records names in `schema_migrations`.
-- Down migration removes table only for local rollback before dependent data exists.
+`schema_migrations(version text primary key, applied_at timestamptz not null default now())` is infrastructure metadata. It tracks ordered migration filenames; it has no product relationship.
+
+## Integrity rules
+
+`id = TRUE` makes second product row impossible. API trims before write; database check prevents blank data from any alternate writer. `updated_at` is set by API on update. No foreign keys, indexes, soft deletion, or audit trail: one-row lookup needs none. Add history only after stakeholder scope change.
