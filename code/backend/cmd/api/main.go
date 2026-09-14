@@ -19,7 +19,9 @@ import (
 func main() {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" { log.Fatal("DATABASE_URL is required") }
-	db := sql.OpenDB(stdlib.GetConnector(databaseURL))
+	connConfig, err := pgx.ParseConfig(databaseURL)
+	if err != nil { log.Fatalf("invalid DATABASE_URL: %v", err) }
+	db := sql.OpenDB(stdlib.GetConnector(*connConfig))
 	defer db.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
