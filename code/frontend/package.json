@@ -1,6 +1,7 @@
 {
   "name": "hello-world-acceptance-frontend",
   "version": "1.0.0",
+  "description": "Hello World Acceptance frontend",
   "private": true,
   "scripts": {
     "dev": "next dev",
