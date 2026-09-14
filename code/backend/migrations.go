@@ -1,6 +1,6 @@
-package backend
+package main
 
 import "embed"
 
 //go:embed migrations/*.up.sql
-var Migrations embed.FS
+var migrationFiles embed.FS
