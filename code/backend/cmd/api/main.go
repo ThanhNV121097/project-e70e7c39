@@ -36,8 +36,8 @@ func main() {
 
 func migrate(ctx context.Context, db *sql.DB) error {
 	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil { return err }
-	entries, err := migrationFiles.ReadDir("migrations"); if err != nil { return err }; sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
-	for _, entry := range entries { name := entry.Name(); if entry.IsDir() || !strings.HasSuffix(name, ".up.sql") { continue }; var done bool; if err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = $1)`, name).Scan(&done); err != nil || done { if err != nil { return err }; continue }; sqlBytes, err := migrationFiles.ReadFile(path.Join("migrations", name)); if err != nil { return err }; tx, err := db.BeginTx(ctx, nil); if err != nil { return err }; if _, err = tx.ExecContext(ctx, string(sqlBytes)); err == nil { _, err = tx.ExecContext(ctx, `INSERT INTO schema_migrations (version) VALUES ($1)`, name) }; if err != nil { tx.Rollback(); return fmt.Errorf("%s: %w", name, err) }; if err = tx.Commit(); err != nil { return err } }
+	entries, err := migrations.Files.ReadDir("."); if err != nil { return err }; sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
+	for _, entry := range entries { name := entry.Name(); if entry.IsDir() || !strings.HasSuffix(name, ".up.sql") { continue }; var done bool; if err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = $1)`, name).Scan(&done); err != nil || done { if err != nil { return err }; continue }; sqlBytes, err := migrations.Files.ReadFile(name); if err != nil { return err }; tx, err := db.BeginTx(ctx, nil); if err != nil { return err }; if _, err = tx.ExecContext(ctx, string(sqlBytes)); err == nil { _, err = tx.ExecContext(ctx, `INSERT INTO schema_migrations (version) VALUES ($1)`, name) }; if err != nil { tx.Rollback(); return fmt.Errorf("%s: %w", name, err) }; if err = tx.Commit(); err != nil { return err } }
 	return nil
 }
 
