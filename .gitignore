@@ -1,0 +1,13 @@
+# Local secrets
+.env
+# Dependencies and build output
+node_modules/
+code/frontend/node_modules/
+code/frontend/.next/
+# Go artifacts
+code/backend/vendor/
+*.exe
+# IDE
+.idea/
+.vscode/
+.DS_Store
