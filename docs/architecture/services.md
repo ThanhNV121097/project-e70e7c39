@@ -1,52 +1,51 @@
 # Service Contracts
 
-Base path reaches backend after deployment proxy strips `/api`. Paths below deliberately omit that prefix.
+Base path is `/v1`; deployment proxy strips external `/api`. All JSON uses `Content-Type: application/json`.
 
-## Shared rules
+## Error envelope
 
-- Content type is `application/json; charset=utf-8` for JSON responses.
-- Greeting text is trimmed by API. Empty or whitespace-only values are invalid.
-- No authentication. Last successful update wins.
-- Errors use one envelope:
+Every non-2xx response:
 
 ```json
-{"error":{"code":"invalid_request","message":"Greeting must not be blank."}}
+{"error":{"code":"invalid_greeting","message":"Greeting must not be blank."}}
 ```
 
-`code` is stable machine text. `message` is safe plain text. Never return database or internal error details.
+`code` is stable machine text; `message` is generic safe text. No database details or input echo.
 
-## Endpoints
+## Get current greeting
 
-### `GET /v1/greeting`
+`GET /v1/greeting`
 
-Returns current stored greeting.
-
-**200 response**
+Success `200`:
 
 ```json
 {"greeting":"Hello, World!"}
 ```
 
-**Errors:** `500 internal_error` when persistence cannot be read.
+Failures: `503 database_unavailable` when storage cannot serve request; `500 internal_error` otherwise.
 
-### `PUT /v1/greeting`
+## Replace current greeting
 
-Replaces current greeting.
+`PUT /v1/greeting`
 
-**Request**
-
-```json
-{"greeting":"Pipeline accepted"}
-```
-
-**200 response**
+Request:
 
 ```json
 {"greeting":"Pipeline accepted"}
 ```
 
-**Errors:** `400 invalid_request` for malformed JSON, missing greeting, or blank trimmed greeting; `405 method_not_allowed` for unsupported methods; `500 internal_error` when persistence cannot be updated.
+Server trims surrounding whitespace before validation and persistence. Success `200`:
 
-### `GET /healthz`
+```json
+{"greeting":"Pipeline accepted"}
+```
 
-Operational endpoint. Returns `200` only after migrations complete and database `SELECT 1` succeeds. Response body is plain `ok\n`. Returns `503` otherwise.
+Failures: `400 invalid_json` for malformed body; `422 invalid_greeting` for missing, empty, or whitespace-only greeting; `503 database_unavailable`; `500 internal_error`. Later successful request wins.
+
+## Health
+
+`GET /healthz` returns `200` with `{"status":"ok"}` only after migrations completed and `SELECT 1` succeeds. It returns `503` with shared error envelope otherwise. Health endpoint is operational, not proxy-prefixed.
+
+## Boundary rules
+
+Only `GET` and `PUT` routes above exist. Requests use one JSON object, reject unknown shape only when contract grows. Backend caps request body at 64 KiB, accepts public text as UTF-8 JSON, and sends no-cache response headers for mutable greeting. CORS permits frontend origin in local compose; production proxy serves same public origin.
